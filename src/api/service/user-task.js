@@ -39,4 +39,24 @@ const playlistLength = async (youtube, { playlistId, end, removeDuplicated = tru
 	return [duration, ids];
 };
 
-module.exports = { playlistItems, items, playlistLength };
+const createPlaylist = async (youtube, { videoIds, title, description, defaultLanguage = 'vi', isPublic = true }) => {
+	const res = await youtube.playlists.insert({
+		part: ['snippet', 'status', 'contentDetails', 'id', 'localizations', 'player'],
+		requestBody: { snippet: { title, description, defaultLanguage }, status: { privacyStatus: isPublic ? 'public' : 'private' } },
+	});
+	for (const videoId of videoIds) {
+		// prettier-ignore
+		await youtube.playlistItems.insert({ part: ['snippet', 'status', 'contentDetails', 'id'], requestBody: { snippet: { playlistId: res.data.id, resourceId: { kind: 'youtube#video', videoId } } }})
+	}
+	return res.data.id;
+};
+
+const addPlaylistItems = async (youtube, { playlistId, videoIds = [] }) => {
+	for (const videoId of videoIds) {
+		// prettier-ignore
+		await youtube.playlistItems.insert({ part: ['snippet', 'status', 'contentDetails', 'id'], requestBody: { snippet: { playlistId, resourceId: { kind: 'youtube#video', videoId } } }})
+	}
+	return playlistId;
+};
+
+module.exports = { playlistItems, items, playlistLength, createPlaylist, addPlaylistItems };

@@ -34,4 +34,21 @@ const playlistLength = async (req, res, next) => {
 	}
 };
 
-module.exports = { playlistLength };
+const createPlaylist = async (req, res, next) => {
+	try {
+		const { videoIds = [], title, description, defaultLanguage = 'vi', isPublic = true } = req.query;
+		if (_.isEmpty(title) || _.isEmpty(description)) {
+			next(createError(400, { message: `Đầu vào không hợp lệ, tên và mô tả danh sách phát không được phép trống.` }));
+			return;
+		}
+		const ids = (Array.isArray(videoIds) ? videoIds : [videoIds]).filter((v) => isYtbUrl(v));
+		const youtube = globalContext.get('google').youtube({ version: 'v3' });
+		const playlistId = await userTaskService.createPlaylist(youtube, { videoIds: ids, title, description, defaultLanguage, isPublic });
+		res.json({ message: `Tạo danh sách phát thành công danh sách phát thành công.`, data: playlistId });
+	} catch (error) {
+		if (error instanceof createError.HttpError) throw error;
+		next(createError(500, { message: `Không thể tạo danh sách phát ngay bây giờ, thử lại sau.` }));
+	}
+};
+
+module.exports = { playlistLength, createPlaylist };
